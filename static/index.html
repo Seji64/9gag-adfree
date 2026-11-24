@@ -36,6 +36,9 @@
   .card .meta { margin-top:6px; font-size:13px; color:var(--dim); display:flex; gap:14px; }
   #sentinel { height:1px; }
   #empty { color:var(--dim); text-align:center; padding:40px 0; display:none; }
+  #ptr { height:0; overflow:hidden; text-align:center; color:var(--dim); font-size:13px; transition:height .25s ease; }
+  #ptr .spin { display:inline-block; }
+  @keyframes spin { to { transform:rotate(360deg); } }
 </style>
 </head>
 <body>
@@ -178,6 +181,25 @@ setInterval(refresh, 15000);
 // "Add to Home Screen" über Manifest + apple-touch-icon funktioniert trotzdem.
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost'))
   navigator.serviceWorker.register('/sw.js').catch(() => {});
+
+// Pull-to-Refresh: von der Oberkante nach unten ziehen → refresh() (Indicator, 0,5x Widerstand)
+const ptr = document.createElement('div');
+ptr.id = 'ptr'; ptr.innerHTML = '<span class="spin">🔄</span> ';
+document.querySelector('main').prepend(ptr);
+let py = null;
+document.addEventListener('touchstart', e => { py = window.scrollY === 0 ? e.touches[0].clientY : null; }, {passive:true});
+document.addEventListener('touchmove', e => {
+  if (py === null) return;
+  ptr.style.height = Math.max(0, Math.min((e.touches[0].clientY - py) * .5, 90)) + 'px';
+}, {passive:true});
+document.addEventListener('touchend', () => {
+  const h = parseFloat(ptr.style.height) || 0;
+  py = null; ptr.style.height = '0px';
+  if (h < 70) return;
+  refresh();
+  ptr.textContent = 'Aktualisiert ✓';
+  setTimeout(() => ptr.innerHTML = '<span class="spin">🔄</span> ', 1200);
+});
 
 refresh();
 </script>
