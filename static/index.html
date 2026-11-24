@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#121212">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='44' fill='%23f90'/%3E%3C/svg%3E">
+<title>9GAG · AdFree</title>
+<style>
+  :root { color-scheme: dark; --bg:#121212; --card:#1e1e1e; --txt:#f2f2f2; --dim:#9a9a9a; --acc:#f90; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); font:16px/1.4 system-ui,-apple-system,sans-serif; }
+  header { position:sticky; top:0; background:rgba(18,18,18,.92); backdrop-filter:blur(6px); border-bottom:1px solid #2a2a2a; z-index:1; }
+  .hrow { display:flex; align-items:center; justify-content:space-between; padding:10px 14px 0; }
+  header h1 { font-size:17px; margin:0; font-weight:700; }
+  header h1 span { color:var(--acc); }
+  .chips { display:flex; gap:8px; overflow-x:auto; padding:10px 14px; scrollbar-width:none; }
+  .chips::-webkit-scrollbar { display:none; }
+  .chip { flex:0 0 auto; border:0; padding:6px 13px; border-radius:999px; background:#2a2a2a; color:var(--dim); font-size:13px; font-family:inherit; }
+  .chip.on { background:var(--acc); color:#000; font-weight:600; }
+  main { max-width:640px; margin:0 auto; padding:10px 10px 40px; }
+  .card { display:block; background:var(--card); border-radius:12px; overflow:hidden; margin-bottom:14px; text-decoration:none; color:inherit; animation:pop .25s ease; cursor:zoom-in; }
+  .orig { color:var(--acc); }
+  #lb { position:fixed; inset:0; z-index:10; background:rgba(0,0,0,.96); display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:zoom-out; }
+  #lb[hidden] { display:none; }
+  #lb img, #lb video { max-width:100vw; max-height:84vh; object-fit:contain; }
+  #lbcap { color:#bbb; font-size:14px; padding:12px 16px; text-align:center; }
+  @keyframes pop { from { opacity:0; transform:translateY(6px); } }
+  .sk { height:280px; border-radius:12px; margin-bottom:14px; background:#1e1e1e; animation:pulse 1.2s ease-in-out infinite alternate; }
+  @keyframes pulse { to { opacity:.5; } }
+  .card img { display:block; width:100%; height:auto; background:#000; }
+  .card .body { padding:10px 12px 12px; }
+  .card .title { font-weight:600; font-size:15px; }
+  .card .meta { margin-top:6px; font-size:13px; color:var(--dim); display:flex; gap:14px; }
+  #sentinel { height:1px; }
+  #empty { color:var(--dim); text-align:center; padding:40px 0; display:none; }
+</style>
+</head>
+<body>
+<header>
+  <div class="hrow"><h1>9GAG <span>· AdFree</span></h1></div>
+  <div id="chips" class="chips"></div>
+</header>
+<main>
+  <div id="skeleton"><div class="sk"></div><div class="sk"></div><div class="sk"></div></div>
+  <div id="feed"></div>
+  <p id="empty">Alles hier oben schon gesehen — kommt gleich mehr. 🔁</p>
+  <div id="sentinel"></div>
+</main>
+<div id="lb" hidden><img id="lbimg" alt=""><div id="lbcap"></div></div>
+<script>
+// minimal 9gag viewer: fetch /api/feed, dedupe by id, infinite scroll via re-fetch
+const feed = document.getElementById('feed');
+const seen = new Set();
+let fetching = false, lastFetch = 0;
+
+// lightbox: tap Bild → Vollbild, tap/Esc → zu; kein 9gag-Redirect
+const lb = document.getElementById('lb');
+function openLb(src, cap, kind) {
+  const old = document.getElementById('lbimg');
+  const el = document.createElement(kind === 'video' ? 'video' : 'img');
+  el.id = 'lbimg'; el.src = src;
+  if (kind === 'video') { el.muted = true; el.loop = true; el.autoplay = true; el.setAttribute('playsinline', ''); }
+  old.replaceWith(el);
+  document.getElementById('lbcap').textContent = cap || '';
+  lb.hidden = false; document.body.style.overflow = 'hidden';
+}
+function closeLb() { lb.hidden = true; document.body.style.overflow = ''; }
+lb.addEventListener('click', closeLb);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLb(); });
+
+function render(p, top) {
+  const img = (p.images && (p.images.image700 || p.images.image460)) || null;
+  if (!img) return; // no usable image → skip
+  const vid = p.images && p.images.image460sv; // GIF/Video-Post: mp4 + statischer Frame
+  const c = document.createElement('div');
+  c.className = 'card';
+  c.dataset.nsfw = p.nsfw ? '1' : '0';
+  let im;
+  if (vid) {
+    im = document.createElement('video');
+    im.muted = true; im.loop = true; im.autoplay = true; im.playsInline = true;
+    im.setAttribute('playsinline', ''); im.preload = 'metadata';
+    im.poster = img.webpUrl || img.url; im.src = vid.url;
+  } else {
+    im = document.createElement('img');
+    im.loading = 'lazy';
+    im.src = img.webpUrl || img.url;
+  }
+  im.width = img.width; im.height = img.height;
+  im.alt = p.title || '';
+  im.addEventListener('click', () => openLb(vid ? vid.url : im.src, p.title, vid ? 'video' : ''));
+  c.appendChild(im);
+  const b = document.createElement('div'); b.className = 'body';
+  const t = document.createElement('div'); t.className = 'title'; t.textContent = p.title || '(ohne Titel)';
+  const m = document.createElement('div'); m.className = 'meta';
+  m.textContent = '▲ ' + p.upVoteCount + '   💬 ' + p.commentsCount + (p.type ? '   · ' + p.type : '') + '   ';
+  const o = document.createElement('a');
+  o.className = 'orig'; o.href = p.url; o.target = '_blank'; o.rel = 'noopener';
+  o.textContent = 'Original ↗';
+  o.addEventListener('click', e => e.stopPropagation());
+  m.appendChild(o);
+  b.append(t, m); c.appendChild(b);
+  top ? feed.prepend(c) : feed.appendChild(c);
+}
+
+// Cursor-Scroll: `after` wird im URL-String ROH angehängt (bereits percent-encoded,
+// kein Re-Encode — sonst liefert Upstream immer Seite 1).
+let cursor = null, loading = false, stale = 0;
+async function loadMore() {
+  if (group === "alle" || loading || !cursor || stale >= 2) return;
+  loading = true;
+  try {
+    const d = await (await fetch('/api/feed?g=' + group + '&after=' + cursor, { cache: 'no-store' })).json();
+    let n = 0;
+    for (const p of d.posts) {
+      if (!p.id || seen.has(p.id) || (p.nsfw && group !== "nsfw")) continue;
+      seen.add(p.id); render(p, false); n++;
+    }
+    cursor = d.nextCursor || null;
+    stale = n ? 0 : stale + 1; // Safety-Valve: 2x keine Neuheit → Cursor fest → stoppen
+  } catch (e) { /* next scroll retry */ }
+  loading = false;
+}
+
+async function refresh() {
+  if (fetching) return; // 60s-Server-Cache ist der eigentliche Rate-Limiter
+  fetching = true; lastFetch = Date.now();
+  try {
+    let fresh = 0;
+    // "alle": clientseitiger Merge (12 Gruppen + live fresh-Tipp) — Worker-Limit:
+    // 1 Subrequest pro Call, daher parallel im Client, nicht serverseitig.
+    const srcs = group === "alle" ? [...GROUPS, "fresh"] : [group];
+    const results = await Promise.all(srcs.map(s => fetch('/api/feed?g=' + s, { cache: 'no-store' }).then(r => r.json())));
+    for (const d of results) {
+      if (group !== "alle") cursor = d.nextCursor || cursor; // tiefsten Cursor für loadMore halten
+      for (const p of d.posts) {
+        // NSFW gemasked, außer der nsfw-Chip (oder "alle" ohne nsfw-Gruppe)
+        if (!p.id || seen.has(p.id) || (p.nsfw && group !== "nsfw")) continue;
+        seen.add(p.id); render(p, true); fresh++;
+      }
+    }
+    if (fresh) document.getElementById('skeleton')?.remove();
+    document.getElementById('empty').style.display = fresh ? 'none' : 'block';
+  } catch (e) { /* next scroll retry */ }
+  fetching = false;
+}
+
+// Kategorie-Chips: Single-Select wie 9gag selbst, Wechsel = Feed-Reset.
+// "alle" = 12 Gruppen + live fresh-Tipp, clientseitig parallel gemerged
+// (Worker: 1 Subrequest/Call), NSFW gemasked (Opt-in nur über den nsfw-Chip).
+const GROUPS = ["funny","meme","gaming","girl","music","food","car","tv","science","history","random","nsfw"];
+let group = "alle";
+function setGroup(g) {
+  group = g;
+  document.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c.dataset.g === g));
+  feed.innerHTML = ''; seen.clear(); cursor = null; stale = 0;
+  refresh();
+}
+for (const g of ["alle", ...GROUPS]) {
+  const b = document.createElement('button');
+  b.className = 'chip' + (g === group ? ' on' : '');
+  b.dataset.g = g; b.textContent = g;
+  b.addEventListener('click', () => setGroup(g));
+  document.getElementById('chips').appendChild(b);
+}
+
+new IntersectionObserver(entries => {
+  if (entries[0].isIntersecting) { loadMore(); refresh(); }
+}).observe(document.getElementById('sentinel'));
+
+// Observer feuert nur bei Zustandswechsel — Polling deckt "User steht am Ende" ab
+setInterval(refresh, 15000);
+
+refresh();
+</script>
+</body>
+</html>
