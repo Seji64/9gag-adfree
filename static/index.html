@@ -28,7 +28,7 @@
   @keyframes pop { from { opacity:0; transform:translateY(6px); } }
   .sk { height:280px; border-radius:12px; margin-bottom:14px; background:#1e1e1e; animation:pulse 1.2s ease-in-out infinite alternate; }
   @keyframes pulse { to { opacity:.5; } }
-  .card img { display:block; width:100%; height:auto; background:#000; }
+  .card img, .card video { display:block; width:100%; height:auto; background:#000; }
   .card .body { padding:10px 12px 12px; }
   .card .title { font-weight:600; font-size:15px; }
   .card .meta { margin-top:6px; font-size:13px; color:var(--dim); display:flex; gap:14px; }
@@ -49,10 +49,10 @@
 </main>
 <div id="lb" hidden><img id="lbimg" alt=""><div id="lbcap"></div></div>
 <script>
-// minimal 9gag viewer: fetch /api/feed, dedupe by id, infinite scroll via re-fetch
+// minimal 9gag viewer: fetch /api/feed, dedupe by id, infinite scroll via cursor
 const feed = document.getElementById('feed');
 const seen = new Set();
-let fetching = false, lastFetch = 0;
+let fetching = false;
 
 // lightbox: tap Bild → Vollbild, tap/Esc → zu; kein 9gag-Redirect
 const lb = document.getElementById('lb');
@@ -80,14 +80,14 @@ function render(p, top) {
   if (vid) {
     im = document.createElement('video');
     im.muted = true; im.loop = true; im.autoplay = true; im.playsInline = true;
-    im.setAttribute('playsinline', ''); im.preload = 'metadata';
+    im.preload = 'metadata';
     im.poster = img.webpUrl || img.url; im.src = vid.url;
   } else {
     im = document.createElement('img');
     im.loading = 'lazy';
     im.src = img.webpUrl || img.url;
   }
-  im.width = img.width; im.height = img.height;
+  im.width = vid ? vid.width : img.width; im.height = vid ? vid.height : img.height;
   im.alt = p.title || '';
   im.addEventListener('click', () => openLb(vid ? vid.url : im.src, p.title, vid ? 'video' : ''));
   c.appendChild(im);
@@ -125,7 +125,7 @@ async function loadMore() {
 
 async function refresh() {
   if (fetching) return; // 60s-Server-Cache ist der eigentliche Rate-Limiter
-  fetching = true; lastFetch = Date.now();
+  fetching = true;
   try {
     let fresh = 0;
     // "alle": clientseitiger Merge (12 Gruppen + live fresh-Tipp) — Worker-Limit:

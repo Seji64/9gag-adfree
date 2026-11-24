@@ -2,7 +2,7 @@
 // WICHTIG: keine Server-Merge ("all") — 13 Subrequests/Invocation bricht CFs Free-Limit (10) -> 502.
 // "all" wird clientseitig gemerged (12x parallele Calls, 1 Subrequest pro Call).
 const UPSTREAM = "https://9gag.com/v1/group-posts/group/%s/type/fresh";
-const FRESH = "https://9gag.com/v1/feed-posts/type/fresh"; // live-Tipp (~Minuten alt), 3er-Fenster, Cursor nur mit Login
+const FRESH = "https://9gag.com/v1/feed-posts/type/fresh"; // live-Tipp (~Minuten alt), 3er-Fenster
 const GROUPS = ["funny","meme","gaming","girl","music","food","car","tv","science","history","random","nsfw"]; // Whitelist
 const UA =
   "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) " +
