@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#121212">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='44' fill='%23f90'/%3E%3C/svg%3E">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icon-192.png">
 <title>9GAG · AdFree</title>
 <style>
   :root { color-scheme: dark; --bg:#121212; --card:#1e1e1e; --txt:#f2f2f2; --dim:#9a9a9a; --acc:#f90; }
@@ -171,6 +173,11 @@ new IntersectionObserver(entries => {
 
 // Observer feuert nur bei Zustandswechsel — Polling deckt "User steht am Ende" ab
 setInterval(refresh, 15000);
+
+// PWA: SW nur im Secure-Context (https/localhost) — http-LAN lässt ihn aus,
+// "Add to Home Screen" über Manifest + apple-touch-icon funktioniert trotzdem.
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost'))
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
 
 refresh();
 </script>
