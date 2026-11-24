@@ -37,7 +37,8 @@
   #sentinel { height:1px; }
   #empty { color:var(--dim); text-align:center; padding:40px 0; display:none; }
   #ptr { height:0; overflow:hidden; text-align:center; color:var(--dim); font-size:13px; transition:height .25s ease; }
-  #ptr .spin { display:inline-block; }
+  #ptr .spin { display:inline-block; vertical-align:-3px; }
+  #ptr.pulling .spin { animation:spin .8s linear infinite; }
   @keyframes spin { to { transform:rotate(360deg); } }
 </style>
 </head>
@@ -183,22 +184,25 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
   navigator.serviceWorker.register('/sw.js').catch(() => {});
 
 // Pull-to-Refresh: von der Oberkante nach unten ziehen → refresh() (Indicator, 0,5x Widerstand)
+const PTR_SVG = '<svg class="spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>';
 const ptr = document.createElement('div');
-ptr.id = 'ptr'; ptr.innerHTML = '<span class="spin">🔄</span> ';
+ptr.id = 'ptr'; ptr.innerHTML = PTR_SVG + ' ';
 document.querySelector('main').prepend(ptr);
 let py = null;
 document.addEventListener('touchstart', e => { py = window.scrollY === 0 ? e.touches[0].clientY : null; }, {passive:true});
 document.addEventListener('touchmove', e => {
   if (py === null) return;
-  ptr.style.height = Math.max(0, Math.min((e.touches[0].clientY - py) * .5, 90)) + 'px';
+  const h = Math.max(0, Math.min((e.touches[0].clientY - py) * .5, 90));
+  ptr.style.height = h + 'px';
+  ptr.classList.toggle('pulling', h > 8);
 }, {passive:true});
 document.addEventListener('touchend', () => {
   const h = parseFloat(ptr.style.height) || 0;
-  py = null; ptr.style.height = '0px';
+  py = null; ptr.style.height = '0px'; ptr.classList.remove('pulling');
   if (h < 70) return;
   refresh();
   ptr.textContent = 'Aktualisiert ✓';
-  setTimeout(() => ptr.innerHTML = '<span class="spin">🔄</span> ', 1200);
+  setTimeout(() => ptr.innerHTML = PTR_SVG + ' ', 1200);
 });
 
 refresh();
