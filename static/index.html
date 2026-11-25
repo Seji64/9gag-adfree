@@ -20,6 +20,11 @@
   .chips::-webkit-scrollbar { display:none; }
   .chip { flex:0 0 auto; border:0; padding:6px 13px; border-radius:999px; background:#2a2a2a; color:var(--dim); font-size:13px; font-family:inherit; }
   .chip.on { background:var(--acc); color:#000; font-weight:600; }
+  .chip.off { opacity:.4; text-decoration:line-through; }
+  #pol { display:flex; align-items:center; gap:10px; max-width:640px; margin:10px auto 0; padding:10px 14px; font-size:13px; color:var(--dim); }
+  #pol[hidden] { display:none; }
+  #pol button { border:0; background:#2a2a2a; color:var(--dim); padding:5px 12px; border-radius:999px; font-size:12px; font-family:inherit; }
+  #polx { background:none; padding:5px 8px; }
   main { max-width:640px; margin:0 auto; padding:10px 10px 40px; }
   .card { display:block; background:var(--card); border-radius:12px; overflow:hidden; margin-bottom:14px; text-decoration:none; color:inherit; animation:pop .25s ease; cursor:zoom-in; }
   .orig { color:var(--acc); }
@@ -48,6 +53,7 @@
   <div id="feedchips" class="chips"></div>
   <div id="chips" class="chips"></div>
 </header>
+<div id="pol" hidden><span>Weniger politische Inhalte?</span><button id="polb">Ausblenden</button><button id="polx" aria-label="schließen">×</button></div>
 <main>
   <div id="skeleton"><div class="sk"></div><div class="sk"></div><div class="sk"></div></div>
   <div id="feed"></div>
@@ -137,7 +143,7 @@ async function refresh() {
     let fresh = 0;
     // "alle": clientseitiger Merge (12 Gruppen + live fresh-Tipp) — Worker-Limit:
     // 1 Subrequest pro Call, daher parallel im Client, nicht serverseitig.
-    const srcs = group === "alle" ? [...GROUPS, "fresh"] : [group];
+    const srcs = group === "alle" ? [...GROUPS, "fresh"].filter(s => s !== blocked) : [group];
     const results = await Promise.all(srcs.map(s => fetch('/api/feed?g=' + s, { cache: 'no-store' }).then(r => r.json())));
     for (const d of results) {
       if (group !== "alle") cursor = d.nextCursor || cursor; // tiefsten Cursor für loadMore halten
@@ -159,6 +165,10 @@ async function refresh() {
 const GROUPS = ["funny","meme","gaming","girl","music","food","car","tv","science","history","random","nsfw","anime","animals","sport","travel","fashion","relationship","politics"];
 const FEED_TYPES = ["home","top","trending","fresh","news","videos"]; // Feed-Typen wie in der 9gag-App
 let group = "alle";
+// „Weniger politische Inhalte?" (App-Banner): politics in Blockliste (localStorage),
+// verschwindet aus dem „alle"-Merge; Chip-Tipp = unblocken.
+let blocked = localStorage.getItem("blocked") || "";
+function paintBlocked() { document.querySelectorAll("#chips .chip").forEach(c => c.classList.toggle("off", c.dataset.g === blocked)); }
 function setGroup(g) {
   group = g;
   document.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c.dataset.g === g));
@@ -169,9 +179,14 @@ for (const g of ["alle", ...GROUPS]) {
   const b = document.createElement('button');
   b.className = 'chip' + (g === group ? ' on' : '');
   b.dataset.g = g; b.textContent = g;
-  b.addEventListener('click', () => setGroup(g));
+  b.addEventListener('click', () => { if (blocked === g) { blocked = ""; localStorage.removeItem("blocked"); paintBlocked(); } setGroup(g); });
   document.getElementById('chips').appendChild(b);
 }
+paintBlocked();
+const pol = document.getElementById("pol");
+if (blocked || !localStorage.getItem("poldone")) pol.hidden = false;
+pol.querySelector("#polb").onclick = () => { blocked = "politics"; localStorage.setItem("blocked", blocked); localStorage.setItem("poldone", "1"); pol.hidden = true; paintBlocked(); refresh(); };
+pol.querySelector("#polx").onclick = () => { localStorage.setItem("poldone", "1"); pol.hidden = true; };
 // Feed-Typen (wie 9gag-App: Home/Top/Trending/Fresh/News/Videos) — eigene Reihe.
 for (const g of FEED_TYPES) {
   const b = document.createElement('button');
