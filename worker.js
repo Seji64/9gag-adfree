@@ -2,8 +2,7 @@
 // WICHTIG: keine Server-Merge ("all") — 13 Subrequests/Invocation bricht CFs Free-Limit (10) -> 502.
 // "all" wird clientseitig gemerged (12x parallele Calls, 1 Subrequest pro Call).
 const UPSTREAM = "https://9gag.com/v1/group-posts/group/%s/type/fresh";
-const FEED = "https://9gag.com/v1/feed-posts/type/%s"; // Feed-Typen wie in der 9gag-App
-const FEED_TYPES = ["home","top","trending","fresh","news","videos"]; // alle mit nextCursor (API-geprüft)
+const FRESH = "https://9gag.com/v1/feed-posts/type/fresh"; // live-Tipp (~Minuten alt), 3er-Fenster
 const GROUPS = ["funny","meme","gaming","girl","music","food","car","tv","science","history","random","nsfw","anime","animals","sport","travel","fashion","relationship","politics"]; // Whitelist
 const UA =
   "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) " +
@@ -39,11 +38,11 @@ export default {
         if (i > 0) params[kv.slice(0, i)] = kv.slice(i + 1);
       }
       const g0 = params.g || "funny";
-      const g = FEED_TYPES.includes(g0) ? g0 : GROUPS.includes(g0) ? g0 : "funny";
+      const g = g0 === "fresh" ? "fresh" : GROUPS.includes(g0) ? g0 : "funny";
       const after = params.after || "";
       try {
         const cache = await caches.open("gag-v1");
-        const target = (FEED_TYPES.includes(g) ? FEED : UPSTREAM).replace("%s", g) + (after ? "?after=" + after : "");
+        const target = (g === "fresh" ? FRESH : UPSTREAM.replace("%s", g)) + (after ? "?after=" + after : "");
         const { posts, cur } = await fetchSrc(cache, target);
         return new Response(JSON.stringify({ posts, nextCursor: cur }), {
           headers: { "Content-Type": "application/json", "Cache-Control": "max-age=15" },

@@ -50,7 +50,6 @@
 <body>
 <header>
   <div class="hrow"><h1>9GAG <span>· AdFree</span></h1></div>
-  <div id="feedchips" class="chips"></div>
   <div id="chips" class="chips"></div>
 </header>
 <div id="pol" hidden><span>Weniger politische Inhalte?</span><button id="polb">Ausblenden</button><button id="polx" aria-label="schließen">×</button></div>
@@ -163,7 +162,6 @@ async function refresh() {
 // "alle" = 19 Gruppen + live fresh-Tipp, clientseitig parallel gemerged
 // (Worker: 1 Subrequest/Call), NSFW gemasked (Opt-in nur über den nsfw-Chip).
 const GROUPS = ["funny","meme","gaming","girl","music","food","car","tv","science","history","random","nsfw","anime","animals","sport","travel","fashion","relationship","politics"];
-const FEED_TYPES = ["home","top","trending","fresh","news","videos"]; // Feed-Typen wie in der 9gag-App
 let group = "alle";
 // „Weniger politische Inhalte?" (App-Banner): politics in Blockliste (localStorage),
 // verschwindet aus dem „alle"-Merge; Chip-Tipp = unblocken.
@@ -187,14 +185,6 @@ const pol = document.getElementById("pol");
 if (blocked || !localStorage.getItem("poldone")) pol.hidden = false;
 pol.querySelector("#polb").onclick = () => { blocked = "politics"; localStorage.setItem("blocked", blocked); localStorage.setItem("poldone", "1"); pol.hidden = true; paintBlocked(); refresh(); };
 pol.querySelector("#polx").onclick = () => { localStorage.setItem("poldone", "1"); pol.hidden = true; };
-// Feed-Typen (wie 9gag-App: Home/Top/Trending/Fresh/News/Videos) — eigene Reihe.
-for (const g of FEED_TYPES) {
-  const b = document.createElement('button');
-  b.className = 'chip' + (g === group ? ' on' : '');
-  b.dataset.g = g; b.textContent = g;
-  b.addEventListener('click', () => setGroup(g));
-  document.getElementById('feedchips').appendChild(b);
-}
 
 new IntersectionObserver(entries => {
   if (entries[0].isIntersecting) { loadMore(); refresh(); }

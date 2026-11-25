@@ -22,7 +22,7 @@ GET /api/feed?g=<group>            # page 1 (60s server cache)
 GET /api/feed?g=<group>&after=...  # cursor page (never cached)
 ```
 
-`g`: one of the 19 groups (`funny, meme, gaming, girl, music, food, car, tv, science, history, random, nsfw, anime, animals, sport, travel, fashion, relationship, politics`) or a feed type (`home, top, trending, fresh, news, videos`).
+`g`: one of `funny, meme, gaming, girl, music, food, car, tv, science, history, random, nsfw, anime, animals, sport, travel, fashion, relationship, politics, fresh`.
 Response: `{ "posts": [...], "nextCursor": "after=...&c=10" | null }`
 
 ## The one gotcha: raw cursor passthrough
