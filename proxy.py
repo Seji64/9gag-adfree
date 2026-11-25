@@ -8,7 +8,8 @@ import urllib.request
 import http.server
 
 UPSTREAM = "https://9gag.com/v1/group-posts/group/%s/type/fresh"
-FRESH = "https://9gag.com/v1/feed-posts/type/fresh"  # live-Tipp (Posts ~Minuten alt)
+FEED = "https://9gag.com/v1/feed-posts/type/%s"  # Feed-Typen wie in der 9gag-App (Top/Trending/...)
+FEED_TYPES = ("home", "top", "trending", "fresh", "news", "videos")  # alle mit nextCursor (API-geprüft)
 GROUPS = ("funny", "meme", "gaming", "girl", "music", "food", "car", "tv", "science", "history", "random", "nsfw", "anime", "animals", "sport", "travel", "fashion", "relationship", "politics")  # Whitelist: kein offenes String-Passen in die URL
 UA = ("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) "
       "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148")
@@ -26,7 +27,7 @@ def fetch(group="funny", after=""):
         now = time.time()
         if c["posts"] is not None and now - c["ts"] < CACHE_S:
             return c["posts"], None
-    url = (FRESH if group == "fresh" else UPSTREAM % group) + (("?after=" + after) if after else "")
+    url = (FEED % group if group in FEED_TYPES else UPSTREAM % group) + (("?" + "after=" + after) if after else "")
     req = urllib.request.Request(url, headers={"User-Agent": UA})
     with urllib.request.urlopen(req, timeout=15) as r:
         data = json.load(r)
@@ -54,7 +55,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 if i > 0:
                     params[kv[:i]] = kv[i + 1:]
             g = params.get("g", "funny")
-            if g != "fresh" and g not in GROUPS:
+            if g not in GROUPS and g not in FEED_TYPES:
                 g = "funny"
             after = params.get("after", "")
             try:
