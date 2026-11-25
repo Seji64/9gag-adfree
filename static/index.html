@@ -153,9 +153,9 @@ async function refresh() {
 }
 
 // Kategorie-Chips: Single-Select wie 9gag selbst, Wechsel = Feed-Reset.
-// "alle" = 12 Gruppen + live fresh-Tipp, clientseitig parallel gemerged
+// "alle" = 19 Gruppen + live fresh-Tipp, clientseitig parallel gemerged
 // (Worker: 1 Subrequest/Call), NSFW gemasked (Opt-in nur über den nsfw-Chip).
-const GROUPS = ["funny","meme","gaming","girl","music","food","car","tv","science","history","random","nsfw"];
+const GROUPS = ["funny","meme","gaming","girl","music","food","car","tv","science","history","random","nsfw","anime","animals","sport","travel","fashion","relationship","politics"];
 let group = "alle";
 function setGroup(g) {
   group = g;

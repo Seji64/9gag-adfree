@@ -3,7 +3,7 @@
 // "all" wird clientseitig gemerged (12x parallele Calls, 1 Subrequest pro Call).
 const UPSTREAM = "https://9gag.com/v1/group-posts/group/%s/type/fresh";
 const FRESH = "https://9gag.com/v1/feed-posts/type/fresh"; // live-Tipp (~Minuten alt), 3er-Fenster
-const GROUPS = ["funny","meme","gaming","girl","music","food","car","tv","science","history","random","nsfw"]; // Whitelist
+const GROUPS = ["funny","meme","gaming","girl","music","food","car","tv","science","history","random","nsfw","anime","animals","sport","travel","fashion","relationship","politics"]; // Whitelist
 const UA =
   "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) " +
   "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148";
