@@ -120,13 +120,13 @@ function render(p, top) {
 // kein Re-Encode — sonst liefert Upstream immer Seite 1).
 let cursor = null, loading = false, stale = 0;
 async function loadMore() {
-  if (group === "alle" || loading || !cursor || stale >= 2) return;
+  if (group === "alle" || group === "nsfw" || loading || !cursor || stale >= 2) return;
   loading = true;
   try {
     const d = await (await fetch('/api/feed?g=' + group + '&after=' + cursor, { cache: 'no-store' })).json();
     let n = 0;
     for (const p of d.posts) {
-      if (!p.id || seen.has(p.id) || (p.nsfw && group !== "nsfw")) continue;
+      if (!p.id || seen.has(p.id) || (p.nsfw === (group !== "nsfw"))) continue;
       seen.add(p.id); render(p, false); n++;
     }
     cursor = d.nextCursor || null;
@@ -142,13 +142,16 @@ async function refresh() {
     let fresh = 0;
     // "alle": clientseitiger Merge (12 Gruppen + live fresh-Tipp) — Worker-Limit:
     // 1 Subrequest pro Call, daher parallel im Client, nicht serverseitig.
-    const srcs = group === "alle" ? [...GROUPS, "fresh"].filter(s => s !== blocked) : [group];
+    // nsfw: group/nsfw ist seit 2022 eingefroren → Union der 19 lebendigen Gruppen,
+    // dort fallen nsfw:1-geflaggte Posts durch (gleicher Mechanismus wie „alle").
+    const srcs = group === "alle" ? [...GROUPS, "fresh"].filter(s => s !== blocked && s !== "nsfw")
+      : group === "nsfw" ? [...GROUPS.filter(s => s !== "nsfw"), "fresh"]
+      : [group];
     const results = await Promise.all(srcs.map(s => fetch('/api/feed?g=' + s, { cache: 'no-store' }).then(r => r.json())));
     for (const d of results) {
       if (group !== "alle") cursor = d.nextCursor || cursor; // tiefsten Cursor für loadMore halten
       for (const p of d.posts) {
-        // NSFW gemasked, außer der nsfw-Chip (oder "alle" ohne nsfw-Gruppe)
-        if (!p.id || seen.has(p.id) || (p.nsfw && group !== "nsfw")) continue;
+        if (!p.id || seen.has(p.id) || (p.nsfw === (group !== "nsfw"))) continue;
         seen.add(p.id); render(p, true); fresh++;
       }
     }
